@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:s="http://www.springframework.org/schema/security"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.2.xsd
+		http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.2.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd">
+
+	<!-- Root Context: defines shared resources visible to all other web components -->
+
+	<context:component-scan base-package="com.zjs.cashretracted.*" />
+	
+	<context:annotation-config />
+	
+	<tx:annotation-driven />
+	<!-- Partie Sécurité -->
+	<s:http>
+		<s:intercept-url pattern="/admin/**" access="ROLE_ADMIN_SYSTEM,ROLE_AGENT" />
+		<s:intercept-url pattern="/user/**" access="ROLE_CLIENT,ROLE_ADMIN_SYSTEM,ROLE_AGENT" />
+		<s:form-login login-page="/login" default-target-url="/user/index" authentication-failure-url="/login" />		
+		<s:logout logout-success-url="/login" />
+	</s:http>
+
+	<s:authentication-manager>
+		<s:authentication-provider>
+			<s:password-encoder hash="md5"></s:password-encoder>
+			<s:jdbc-user-service data-source-ref="dataSource"
+				users-by-username-query="select login,motDePass,active from user where login=? "
+				authorities-by-username-query="select u.login,r.libelle from user u,role r,user_roles k where u.id=k.user_id and r.id=k.role_id and u.login =? " />
+		</s:authentication-provider>
+	</s:authentication-manager>
+	
+	
+  <bean id="sourcedata" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+  <property name="driverClassName" value="com.mysql.jdbc.Driver"></property>
+  <property name="url" value="jdbc:mysql://localhost:3306/test"></property>
+  <property name="username" value="root"></property>
+  <property name="password" value=""></property>
+  </bean>
+	
+	
+	<bean id="dataSource" class="org.apache.commons.dbcp.BasicDataSource"
+		destroy-method="close">
+		<property name="driverClassName" value="com.mysql.jdbc.Driver" />
+		<property name="url" value="jdbc:mysql://localhost:3306/test" />
+		<property name="username" value="root" />
+		<property name="password" value="" />
+	</bean>
+
+	<bean id="sessionFactory"
+		class="org.springframework.orm.hibernate4.LocalSessionFactoryBean">
+		<property name="dataSource" ref="dataSource" />
+		<property name="annotatedClasses">
+			<list>
+				<value>com.zjs.cashretracted.model.User</value>
+				<value>com.zjs.cashretracted.model.Compte</value>
+				<value>com.zjs.cashretracted.model.Transaction</value>
+				<value>com.zjs.cashretracted.model.CashRetracted</value>
+				<value>com.zjs.cashretracted.model.Role</value>
+			</list>
+		</property>
+
+		<property name="hibernateProperties">
+			<props>
+				<prop key="hibernate.dialect">org.hibernate.dialect.MySQL5Dialect</prop>
+				<prop key="hibernate.show_sql">true</prop>
+				<!-- <prop key="hibernate.dialect">org.hibernate.dialect.MySQL5InnoDBDialect</prop> -->
+				<!-- <prop key="hibernate.hbm2ddl.auto">create</prop> -->
+				<prop key="hibernate.hbm2ddl.auto">update</prop>
+			</props>
+		</property>
+	</bean>
+
+	<bean id="transactionManager"
+		class="org.springframework.orm.hibernate4.HibernateTransactionManager"
+		p:sessionFactory-ref="sessionFactory">
+	</bean>
+
+	
+</beans>
